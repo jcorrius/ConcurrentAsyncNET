@@ -1,43 +1,18 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Net.Http;
 using System.Threading.Tasks;
 using System.Web.Http;
-using Newtonsoft.Json;
 using Server.Models;
 
 namespace Server.Controllers
 {
     public class HotelsController : ApiController
     {
-        private static readonly string[] Providers = new[] {
-            @"http://localhost:51468/api/hotelscoast",
-            @"http://localhost:51468/api/hotelscity"
-        };
+        private readonly IEnumerable<IHotelsProvider> _hotelProviders;
 
-        private async Task<IEnumerable<Hotel>> GetHotelsAsync(string uri)
+        public HotelsController(IEnumerable<IHotelsProvider> hotelProviders)
         {
-            using (var client = new HttpClient())
-            {
-                var response = await client.GetAsync(uri).ConfigureAwait(false);
-                var content = await response.Content
-                    .ReadAsAsync<IEnumerable<Hotel>>().ConfigureAwait(false);
-
-                return content;
-            }
-        }
-
-        private IEnumerable<Hotel> GetHotels(string uri)
-        {
-            using (var client = new WebClient())
-            {
-                string hotelsJson = client.DownloadString(uri);
-                var hotels = JsonConvert
-                    .DeserializeObject<IEnumerable<Hotel>>(hotelsJson);
-
-                return hotels;
-            }
+            _hotelProviders = hotelProviders;
         }
 
         //
@@ -49,7 +24,7 @@ namespace Server.Controllers
         [HttpGet]
         public IHttpActionResult AllHotelsSync()
         {
-            var hotels = Providers.SelectMany(GetHotels);
+            var hotels = _hotelProviders.SelectMany(p => p.GetHotels());
             return Ok(hotels);
         }
 
@@ -63,9 +38,8 @@ namespace Server.Controllers
         public IHttpActionResult AllHotelsInParallelSync()
         {
 
-            var hotels = Providers.AsParallel()
-                .SelectMany(GetHotels).AsEnumerable();
-
+            var hotels = _hotelProviders.AsParallel()
+                .SelectMany(p => p.GetHotels()).AsEnumerable();                
             return Ok(hotels);
         }
 
@@ -79,10 +53,10 @@ namespace Server.Controllers
         public async Task<IHttpActionResult> AllHotelsAsync()
         {
             var hotelsResult = new List<Hotel>();
-            foreach (var uri in Providers)
+            foreach (var provider in _hotelProviders)
             {
 
-                var hotels = await GetHotelsAsync(uri);
+                var hotels = await provider.GetHotelsAsync().ConfigureAwait(false);
                 hotelsResult.AddRange(hotels);
             }
             
@@ -98,8 +72,8 @@ namespace Server.Controllers
         [HttpGet]
         public async Task<IHttpActionResult> AllHotelsInParallelNonBlockingAsync()
         {
-            var allTasks = Providers.Select(GetHotelsAsync);
-            var allResults = await Task.WhenAll(allTasks);
+            var allTasks = _hotelProviders.Select(p => p.GetHotelsAsync());
+            var allResults = await Task.WhenAll(allTasks).ConfigureAwait(false);
             return Ok(allResults.SelectMany(hotels => hotels));
         }
     }
