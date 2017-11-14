@@ -17,7 +17,7 @@ namespace Providers.Controllers
                 new Hotel() { Id = 6, Name = "Hotel Transilvania", City = "Budapest", Price = 60.0f, Stars = 4}
             };
 
-            return Json(hotels);
+            return Ok(hotels);
         }
     }
 }
