@@ -50,7 +50,7 @@ namespace Server.Controllers
         public IHttpActionResult AllHotelsSync()
         {
             var hotels = Providers.SelectMany(GetHotels);
-            return Json(hotels);
+            return Ok(hotels);
         }
 
         //
@@ -66,7 +66,7 @@ namespace Server.Controllers
             var hotels = Providers.AsParallel()
                 .SelectMany(GetHotels).AsEnumerable();
 
-            return Json(hotels);
+            return Ok(hotels);
         }
 
         //
@@ -86,7 +86,7 @@ namespace Server.Controllers
                 hotelsResult.AddRange(hotels);
             }
             
-            return Json(hotelsResult);
+            return Ok(hotelsResult);
         }
 
         //
@@ -100,7 +100,7 @@ namespace Server.Controllers
         {
             var allTasks = Providers.Select(GetHotelsAsync);
             var allResults = await Task.WhenAll(allTasks);
-            return Json(allResults.SelectMany(hotels => hotels));
+            return Ok(allResults.SelectMany(hotels => hotels));
         }
     }
 }
