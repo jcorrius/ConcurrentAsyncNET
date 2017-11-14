@@ -37,7 +37,6 @@ namespace Server.Controllers
         [HttpGet]
         public IHttpActionResult AllHotelsInParallelSync()
         {
-
             var hotels = _hotelProviders.AsParallel()
                 .SelectMany(p => p.GetHotels()).AsEnumerable();                
             return Ok(hotels);
@@ -61,6 +60,21 @@ namespace Server.Controllers
             }
             
             return Ok(hotelsResult);
+        }
+
+        //
+        // ---------------------------------------------------
+        // Asynchronous and In Parallel(In a Blocking Fashion)
+        // --------------------------------------------------
+        //
+        [Route("api/hotels/AllHotelsInParallelBlockingAsync")]
+        [HttpGet]
+        public IHttpActionResult AllHotelsInParallelBlockingAsync()
+        {
+            var allTasks =_hotelProviders.Select(p => p.GetHotelsAsync());
+            Task.WaitAll(allTasks.ToArray());
+
+            return Ok(allTasks.SelectMany(task => task.Result));
         }
 
         //
